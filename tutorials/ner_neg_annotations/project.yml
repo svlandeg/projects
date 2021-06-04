@@ -1,0 +1,167 @@
+title: "Correcting NER annotations by explicitely marking incorrect annotations and fine-tuning the model."
+description: "TODO"
+# Variables can be referenced across the project.yml using ${vars.var_name}
+vars:
+  pretrained_model: "en_core_web_sm"
+  silver_beam_model: "./training/silver/model-last"
+  input_text: "./assets/emerson_input_text.txt"
+
+# These are the directories that the project needs. The project CLI will make
+# sure that they always exist.
+directories: ["assets", "training", "configs", "scripts", "corpus"]
+
+# Assets that should be downloaded or available in the directory. We're shipping
+# them with the project, so they won't have to be downloaded. But the
+# 'project assets' command still lets you verify that the checksums match.
+
+assets:
+  - dest: "assets/emerson_input_text.txt"
+    description: "The original input text"
+    checksum: "b5bc61375680396017337e3ebe830ada"
+
+# Workflows are sequences of commands (see below) executed in order. You can
+# run them via "spacy project run [workflow]". If a commands's inputs/outputs
+# haven't changed, it won't be re-run.
+workflows:
+  all:
+    - download
+    - evaluate_pretrained
+    - create_silver_data
+    - train_silver_beam
+    - create_annotated_data
+    - train_incorrect
+    - train_filtered
+
+# Project commands, specified in a style similar to CI config files (e.g. Azure
+# pipelines). The name is the command name that lets you trigger the command
+# via "spacy project run [command] [path]". The help message is optional and
+# shown when executing "spacy project run [optional command] [path] --help".
+commands:
+  - name: "download"
+    help: "Download the pretrained pipeline"
+    script:
+      - "python -m spacy download ${vars.pretrained_model}"
+
+  - name: "evaluate_pretrained"
+    help: "Apply the original model to gold-standard data, and measure accuracy"
+    script:
+      - "python -m spacy evaluate ${vars.pretrained_model} ./assets/gold.spacy"
+    deps:
+      - "assets/gold.spacy"
+
+  - name: "create_silver_data"
+    help: "Create the silver annotation data by taking the pretrained NER's predictions"
+    script:
+      - "python scripts/create_data.py ${vars.pretrained_model} ${vars.input_text} corpus SILVER"
+    deps:
+      - ${vars.input_text}
+      - "scripts/create_data.py"
+    outputs:
+      - "corpus/silver.spacy"
+
+  - name: "train_silver_beam"
+    help: "Train a beam NER on the silver annotations produced by spaCy's pretrained NER model - should reach 100% accuracy."
+    script:
+      - python -m spacy train configs/config_beam.cfg --paths.train corpus/silver.spacy --paths.dev corpus/silver.spacy  --output training/silver
+    deps:
+      - "corpus/silver.spacy"
+    outputs:
+      - ${vars.silver_beam_model}
+
+  - name: "evaluate_silver"
+    help: "Apply the silver model to gold-standard data, and measure accuracy. Should be pretty much the same result as evaluate_pretrained!"
+    script:
+      - "python -m spacy evaluate ${vars.silver_beam_model} ./assets/gold.spacy"
+    deps:
+      - "assets/gold.spacy"
+
+  - name: "create_annotated_data"
+    help: "Create the gold annotation data"
+    script:
+      - "python scripts/create_data.py ${vars.silver_beam_model} ${vars.input_text} corpus RELABEL"
+      - "python scripts/create_data.py ${vars.silver_beam_model} ${vars.input_text} corpus INCORRECT"
+      - "python scripts/create_data.py ${vars.silver_beam_model} ${vars.input_text} corpus INCORRECT_ONLY"
+      - "python scripts/create_data.py ${vars.silver_beam_model} ${vars.input_text} corpus FILTER"
+    deps:
+      - ${vars.input_text}
+      - ${vars.silver_beam_model}
+      - "scripts/create_data.py"
+    outputs:
+      - "assets/gold.spacy"
+      - "corpus/relabeled.spacy"
+      - "corpus/incorrect.spacy"
+      - "corpus/filtered.spacy"
+
+  - name: "train_gold"
+    help: "Train the full pipeline on gold data - this should overfit nicely"
+    script:
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./assets/gold.spacy --paths.dev ./assets/gold.spacy  --output ./training/gold --components.beam_ner.source=${vars.silver_beam_model}
+    deps:
+      - "assets/gold.spacy"
+      - ${vars.silver_beam_model}
+    outputs:
+      - "training/gold/model-last"
+
+  - name: "train_relabeled"
+    help: "Train the full pipeline on the relabed Emerson cases"
+    script:
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/relabeled.spacy --paths.dev ./assets/gold.spacy  --output training/relabeled --components.beam_ner.source=${vars.silver_beam_model}
+    deps:
+      - "assets/gold.spacy"
+      - "corpus/relabeled.spacy"
+      - ${vars.silver_beam_model}
+    outputs:
+      - "training/relabeled/model-last"
+
+  - name: "train_filtered"
+    help: "Train the full pipeline on the data with the Emerson cases removed"
+    script:
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/filtered.spacy --paths.dev ./assets/gold.spacy --output training/filtered --components.beam_ner.source=${vars.silver_beam_model}
+    deps:
+      - "assets/gold.spacy"
+      - "corpus/filtered.spacy"
+      - ${vars.silver_beam_model}
+    outputs:
+      - "training/filtered/model-last"
+
+  - name: "train_incorrect_only"
+    help: "Train the full pipeline on the incorrect Emerson cases"
+    script:
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/incorrect_only.spacy --paths.dev ./assets/gold.spacy  --output training/incorrect_only --components.beam_ner.source=${vars.silver_beam_model}
+    deps:
+      - "assets/gold.spacy"
+      - "corpus/incorrect_only.spacy"
+      - ${vars.silver_beam_model}
+    outputs:
+      - "training/incorrect_only/model-last"
+
+  - name: "train_incorrect"
+    help: "Train the full pipeline on the incorrect Emerson cases + correct entities"
+    script:
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/incorrect.spacy --paths.dev ./assets/gold.spacy  --output training/incorrect --components.beam_ner.source=${vars.silver_beam_model}
+    deps:
+      - "assets/gold.spacy"
+      - "corpus/incorrect.spacy"
+      - ${vars.silver_beam_model}
+    outputs:
+      - "training/incorrect/model-last"
+
+  - name: "inspect"
+    help: "Inspect the predictions in detail"
+    script:
+    #  - "python scripts/inspect_mistakes.py ${vars.pretrained_model} ./assets/gold.spacy"
+    #  - "python scripts/inspect_mistakes.py ${vars.silver_beam_model} ./assets/gold.spacy"
+    #  - "python scripts/inspect_mistakes.py training/gold/model-last ./assets/gold.spacy"
+    #  - "python scripts/inspect_mistakes.py training/relabeled/model-last ./assets/gold.spacy"
+      - "python scripts/inspect_mistakes.py training/filtered/model-last ./assets/gold.spacy"
+    #  - "python scripts/inspect_mistakes.py training/incorrect/model-last ./assets/gold.spacy"
+    #   - "python scripts/inspect_mistakes.py training/incorrect_only/model-last ./assets/gold.spacy"
+    deps:
+      - "scripts/inspect_mistakes.py"
+      - "assets/gold.spacy"
+
+  - name: clean
+    help: "Remove intermediate files"
+    script:
+      - "rm -rf training/*"
+      - "rm -rf corpus/*"
