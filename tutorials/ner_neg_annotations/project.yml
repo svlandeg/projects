@@ -76,10 +76,10 @@ commands:
   - name: "finetune_beam"
     help: "Continue training/fine-tuning the beam"
     script:
-      # - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_incorrect_missing.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_incorrect_missing --components.beam_ner.source=${vars.orig_beam_model}
-      # - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_missing.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_missing --components.beam_ner.source=${vars.orig_beam_model}
-      # - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_incorrect.spacy --paths.dev ./assets/dev/  --output ./training/dev_incorrect --components.beam_ner.source=${vars.orig_beam_model}
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_missing.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_missing --components.beam_ner.source=${vars.orig_beam_model}
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_incorrect_missing.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_incorrect_missing --components.beam_ner.source=${vars.orig_beam_model}
       - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_incorrect.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_incorrect --components.beam_ner.source=${vars.orig_beam_model}
+      - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_incorrect.spacy --paths.dev ./assets/dev/  --output ./training/dev_incorrect --components.beam_ner.source=${vars.orig_beam_model}
     deps:
       - "assets/dev/"
       - ${vars.orig_beam_model}

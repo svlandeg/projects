@@ -3,6 +3,7 @@ from pathlib import Path
 import spacy
 import typer
 from spacy.tokens import DocBin
+from spacy.tokens.doc import SetEntsDefault
 from spacy.training import Corpus
 
 DEFAULT_INCORRECT_KEY = "incorrect_spans"
@@ -29,7 +30,7 @@ def main(pretrained_model, corpus_loc: Path, output_dir: Path, keep_correct: boo
         if keep_missing:
             new_ents.extend(missing_preds)
         if new_ents:
-            doc_clean.ents = new_ents
+            doc_clean.set_ents(new_ents, default=SetEntsDefault.missing)
         if keep_incorrect:
             doc_clean.spans[incorrect_key] = incorrect_preds
         if doc_clean.ents or doc_clean.spans.get(incorrect_key):
