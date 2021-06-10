@@ -29,8 +29,7 @@ def main(pretrained_model, corpus_loc: Path, output_dir: Path, keep_correct: boo
             new_ents.extend(correct_preds)
         if keep_missing:
             new_ents.extend(missing_preds)
-        if new_ents:
-            doc_clean.set_ents(new_ents, default=SetEntsDefault.missing)
+        doc_clean.set_ents(new_ents, default=SetEntsDefault.missing)
         if keep_incorrect:
             doc_clean.spans[incorrect_key] = incorrect_preds
         if doc_clean.ents or doc_clean.spans.get(incorrect_key):
