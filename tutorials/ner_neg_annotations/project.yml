@@ -6,6 +6,9 @@ vars:
   orig_beam_model: "./training/beam_original/model-last"
   input_text: "./assets/emerson_input_text.txt"
 
+remotes:
+  default: "gs://galaxy-state/tmp/ner-neg"
+
 # These are the directories that the project needs. The project CLI will make
 # sure that they always exist.
 directories: ["assets", "training", "configs", "scripts", "corpus"]
