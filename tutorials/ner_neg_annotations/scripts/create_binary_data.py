@@ -3,7 +3,7 @@ import random
 
 import spacy
 import typer
-from spacy.tokens import DocBin
+from spacy.tokens import DocBin, Doc
 from spacy.tokens.doc import SetEntsDefault
 from spacy.training import Corpus
 
@@ -31,16 +31,20 @@ def main(
         if random.random() >= teach_prob:
             doc_bin.add(example.reference)
         else:
-            doc_clean = nlp.make_doc(example.reference.text)
             correct_preds, incorrect_preds, missing_preds = evaluate_preds(example)
             new_ents = []
             if keep_correct:
                 new_ents.extend(correct_preds)
             if keep_missing:
                 new_ents.extend(missing_preds)
+            doc_clean = Doc(
+                nlp.vocab,
+                words=[w.text for w in example.y],
+                spaces=[bool(w.whitespace_) for w in example.y]
+            )
             if new_ents:
                 outsides = []
-                for token in example.predicted:
+                for token in example.reference:
                     if token.ent_iob_ == "O" and random.random() < o_prob:
                         outsides.append(doc_clean[token.i:token.i+1])
                 doc_clean.set_ents(
@@ -81,10 +85,11 @@ def evaluate_preds(example):
     if not example.y.has_annotation("ENT_IOB"):
         return correct_preds, incorrect_preds, missing_preds
 
-    gold_spans = example.get_aligned_spans_y2x(example.y.ents)
+    gold_spans = example.y.ents
+    example.get_aligned_spans_y2x(example.y.ents)
     gold_tuples = {(e.label_, e.start, e.end) for e in gold_spans}
 
-    for pred_span in example.x.ents:
+    for pred_span in example.get_aligned_spans_x2y(example.x.ents):
         pred_tuple = (pred_span.label_, pred_span.start, pred_span.end)
         if pred_tuple in gold_tuples:
             correct_preds.append(pred_span)
