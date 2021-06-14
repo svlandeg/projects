@@ -67,10 +67,7 @@ commands:
   - name: "create_annotated_data"
     help: "Create the gold annotation data"
     script:
-      - "python scripts/create_binary_data.py ${vars.orig_beam_model} ./assets/dev/ corpus True True True"
-      - "python scripts/create_binary_data.py ${vars.orig_beam_model} ./assets/dev/ corpus False True False"
-      - "python scripts/create_binary_data.py ${vars.orig_beam_model} ./assets/dev/ corpus True True False"
-      - "python scripts/create_binary_data.py ${vars.orig_beam_model} ./assets/dev/ corpus True False True"
+      - "python scripts/create_binary_data.py ${vars.orig_beam_model} ./assets/dev/ corpus"
     deps:
       - "assets/dev/"
       - ${vars.orig_beam_model}
@@ -79,15 +76,14 @@ commands:
   - name: "finetune_beam"
     help: "Continue training/fine-tuning the beam"
     script:
-      # - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_missing.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_missing --components.beam_ner.source=${vars.orig_beam_model}
-      # - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_incorrect_missing.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_incorrect_missing --components.beam_ner.source=${vars.orig_beam_model}
       - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_incorrect.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_incorrect --components.beam_ner.source=${vars.orig_beam_model}
-      # - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_incorrect.spacy --paths.dev ./assets/dev/  --output ./training/dev_incorrect --components.beam_ner.source=${vars.orig_beam_model}
     deps:
-      - "assets/dev/"
+      - "corpus/dev_correct_incorrect.spacy/"
+      - "corpus/dev/"
       - ${vars.orig_beam_model}
     outputs:
       - "training/dev_correct_incorrect_missing/model-last"
+      - "training/dev_correct_incorrect_missing/model-best"
 
   - name: clean
     help: "Remove intermediate files"
