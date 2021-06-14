@@ -78,6 +78,7 @@ commands:
     script:
       - python -m spacy train configs/config_sourced.cfg --paths.train ./corpus/dev_correct_incorrect.spacy --paths.dev ./assets/dev/  --output ./training/dev_correct_incorrect --components.beam_ner.source=${vars.orig_beam_model}
     deps:
+      - "configs/config_sourced.cfg"
       - "corpus/dev_correct_incorrect.spacy/"
       - "corpus/dev/"
       - ${vars.orig_beam_model}
