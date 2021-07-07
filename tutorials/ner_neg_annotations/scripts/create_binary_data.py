@@ -1,5 +1,4 @@
 from pathlib import Path
-import random
 
 import spacy
 import typer
@@ -18,7 +17,7 @@ def main(
     corpus = Corpus(corpus_loc)
     nlp = spacy.load(pretrained_model)
     ner = nlp.get_pipe("beam_ner")
-    incorrect_key = nlp.get_pipe("beam_ner").incorrect_spans_key or DEFAULT_INCORRECT_KEY
+    incorrect_key = ner.incorrect_spans_key or DEFAULT_INCORRECT_KEY
     doc_bin = DocBin()
     for example in parse(nlp, corpus(nlp)):
         correct_preds, incorrect_preds, missing_preds = evaluate_preds(example)
