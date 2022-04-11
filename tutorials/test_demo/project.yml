@@ -1,0 +1,11 @@
+title: "Test demo project"
+description: "etc."
+
+commands:
+
+  - name: "run_me"
+    help: "Run me"
+    script:
+      - "python -m spacy download 'en_core_web_sm'"
+
+
