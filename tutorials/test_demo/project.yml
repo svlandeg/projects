@@ -9,3 +9,12 @@ commands:
       - "python -m spacy download 'en_core_web_sm'"
 
 
+  - name: "mk_dirs"
+    script:
+      - "mkdir testing_some_stuff"
+      - "mkdir testing_more_stuff"
+
+
+  - name: "rm_dirs"
+    script:
+      - "rm -rf testing_*_stuff"
