@@ -1,0 +1,75 @@
+title: 'Project for benchmarking the performance of relation extraction models.'
+description: "This project trains and runs a REL model on a benchmark dataset to measure F-score."
+
+vars:
+  spacy_trf_name: "en_core_web_trf"
+
+# These are the directories that the project needs. The project CLI will make
+# sure that they always exist.
+directories: ["assets", "configs", "corpus", "scripts", "training"]
+
+# Assets that should be downloaded or available in the directory. We're shipping
+# some of them with the project, so they won't have to be downloaded. But the
+# 'project assets' command still lets you verify that the checksums match.
+assets:
+  -
+    dest: "assets/SemEval2010_task8_all_data.zip"
+    # url: "https://docs.google.com/leaf?id=0B_jQiLugGTAkMDQ5ZjZiMTUtMzQ1Yy00YWNmLWJlZDYtOWY1ZDMwY2U4YjFk&sort=name&layout=list&num=50"
+    url: "https://github.com/JoelNiklaus/SemEval2010Task8/raw/main/SemEval2010_task8_all_data.zip"
+    description: "SemEval 2010 Task 8 Semantic Relations data"
+
+# Workflows are sequences of commands (see below) executed in order. You can
+# run them via "spacy project run [workflow]". If a commands's inputs/outputs
+# haven't changed, it won't be re-run.
+workflows:
+  setup:
+    - install
+    - download
+    - preprocess
+  benchmark:
+    - train
+    - eval
+
+# Project commands, specified in a style similar to CI config files (e.g. Azure
+# pipelines). The name is the command name that lets you trigger the command
+# via "spacy project run [command] [path]". The help message is optional and
+# shown when executing "spacy project run [optional command] [path] --help".
+commands:
+  - name: install
+    help: "Install dependencies"
+    script:
+      - "python -m pip install -r requirements.txt"
+    deps:
+      - "requirements.txt"
+
+  - name: download
+    help: "Download models"
+    script:
+      - "python -m spacy download ${vars.spacy_trf_name}"
+
+  - name: preprocess
+    help: "Preprocess the datasets"
+    script:
+      # - "unzip -q ./assets/SemEval2010_task8_all_data.zip -d ./assets/"
+      - "python scripts/parse_semeval.py ./assets/SemEval2010_task8_all_data/SemEval2010_task8_training/TRAIN_FILE.TXT"
+    deps:
+      - assets/SemEval2010_task8_all_data.zip
+      - scripts/parse_semeval.py
+    outputs:
+      - corpus/rel_train
+
+  - name: train
+    help: "Train the relex model"
+    script:
+      - mkdir train
+
+  - name: eval
+    help: "Evaluate the relex model"
+    script:
+      - mkdir eval
+
+  - name: clean
+    help: "Remove output file(s)"
+    script:
+      - "rm -rf training/*"
+      - "rm -rf eval/*"
