@@ -6,6 +6,7 @@ from spacy.tokens import Span, Doc, DocBin
 
 from wasabi import msg
 
+
 def main(data_input_file: Path, spacy_output_file: Path):
     nlp = English()
     docs = []
@@ -77,10 +78,14 @@ def main(data_input_file: Path, spacy_output_file: Path):
                 if label not in doc._.rel[(e2_i, e1_i)]:
                     doc._.rel[(e2_i, e1_i)][label] = 0.0
 
-        doc_bin = DocBin(docs=docs, attrs=["ORTH", "ENT_IOB", "ENT_TYPE"], store_user_data=True)
+        doc_bin = DocBin(
+            docs=docs, attrs=["ORTH", "ENT_IOB", "ENT_TYPE"], store_user_data=True
+        )
         doc_bin.to_disk(spacy_output_file)
 
-        msg.good(f"Written {len(docs)} to {spacy_output_file} containing REL labels {sorted(rel_labels)}")
+        msg.good(
+            f"Written {len(docs)} to {spacy_output_file} containing REL labels {sorted(rel_labels)}"
+        )
 
 
 def _parse_inline_entities(sentence: str):

@@ -3,6 +3,8 @@ description: "This project trains and runs a REL model on a benchmark dataset to
 
 vars:
   spacy_trf_name: "en_core_web_trf"
+  config: "configs/rel_trf.cfg"     #  "configs/rel_tok2vec.cfg"  "configs/rel_trf.cfg"
+  gpu: 0
 
 # These are the directories that the project needs. The project CLI will make
 # sure that they always exist.
@@ -63,12 +65,19 @@ commands:
   - name: train
     help: "Train the relex model"
     script:
-      - mkdir train
+      - mkdir -p train
+      - "python -m spacy train ${vars.config} --output training --paths.train corpus/train.spacy --paths.dev corpus/test.spacy -c ./scripts/custom_functions.py --gpu-id ${vars.gpu}"
+    deps:
+      - corpus/train.spacy
+      - corpus/test.spacy
+    outputs:
+      - training/model-best
+
 
   - name: eval
     help: "Evaluate the relex model"
     script:
-      - mkdir eval
+      - mkdir -p eval
 
   - name: clean
     help: "Remove output file(s)"
